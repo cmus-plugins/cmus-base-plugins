@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# copied from https://github.com/cmus/cmus/wiki/cmus_ttytter
+
+if ! cmus-remote -C >/dev/null 2>&1 ; then
+    echo >&2 "cmus is not running"
+    exit 1
+fi
+
+info=$(cmus-remote -Q)
+
+state=$(echo "$info" | sed -n 's/^status //p')
+if [ "$state" = "stopped" ] ; then
+    echo >&2 "no song playing currently, aborting!"
+    exit 1
+fi
+
+file=$(echo "$info" | sed -n 's/^file //p')
+artist=$(echo "$info" | sed -n 's/^tag artist //p')
+wordCount=$(echo "$artist" | wc -w)
+if [ $wordCount -eq 1 ] ; then
+    artist="#$artist"
+fi
+album=$(echo "$info" | sed -n 's/^tag album //p')
+wordCount=$(echo "$album" | wc -w)
+if [ $wordCount -eq 1 ] ; then
+    album="#$album"
+fi
+title=$(echo "$info" | sed -n 's/^tag title //p')
+if [ -z "$title" ] ; then
+    title=$(basename "$file" | sed 's/\.[A-Za-z0-9]*$//')
+fi
+
+wordCount=$(echo "$title" | wc -w)
+if [ $wordCount -eq 1 ] ; then        title="#$title"
+fi
+
+if [ -n "$artist" -a -n "$album" ] ; then
+    msg="$title by $artist from $album"
+    longUrl="http://www.last.fm/search?q=${artist}%2B${title}"
+else
+    msg="$title"
+    longUrl="http://www.last.fm/search?q=$(echo "$title" | tr -d "-" | tr -s " " | sed 's/ /%2B/g')"
+fi
+
+#remove hashtags from long url and
+# double quote XML special characters (last.fm needs this)
+    longUrl=$(echo "$longUrl" | tr -d "#" | sed -e 's/"/%22/g' -e 's/&/%26/g' -e "s/'/%27/g" -e 's/</%3c/g' -e 's/>/%3e/g')
+    shortUrl=$(curl -s -G --data-urlencode longurl="$longUrl" http://is.gd/api.php)
+    if [ $(echo -n "$msg" | wc -c) -lt 121 ] ; then
+msg="$msg $shortUrl"
+    fi
+    ttytter -norc -silent -readline=0 -status="#nowplaying $msg"
+exit 0

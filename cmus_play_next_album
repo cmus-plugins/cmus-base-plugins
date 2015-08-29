@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# copied from https://github.com/cmus/cmus/wiki/cmus_play_next_album
+
+ALB_LIMIT=100
+STATUS=$(cmus-remote -Q | grep -E '^status')
+
+if [[ "$STATUS" = 'status playing' ]]
+then
+    ALBUM=$(cmus-remote -Q | grep 'tag album')
+    ALBUM_0="$ALBUM"
+    COUNT=0
+
+    while [ "$ALBUM_0" = "$ALBUM" ]
+    do
+        cmus-remote -n
+        ALBUM=$(cmus-remote -Q | grep 'tag album')
+
+        (( COUNT+=1 ))
+        if [ "$COUNT" -eq $ALB_LIMIT ]
+        then
+            break
+        fi
+    done
+fi

@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# written by Johannes Weißl <jargon@molb.org>, GPLv3
+
+# copied from https://github.com/cmus/cmus/wiki/cmus_format
+
+import sys
+import subprocess
+import os.path
+from optparse import OptionParser
+
+def common_suffix(s):
+    idx = -1
+    for i in range(min(len(x) for x in s)):
+        if len(set(x[idx] for x in s)) != 1:
+            break
+        idx -= 1
+    return s[0][(idx+1):] if idx != -1 else ''
+
+class CMus(object):
+    def __init__(self):
+        self.remotecmd = ['cmus-remote']
+    def is_running(self):
+        try:
+            subprocess.check_call(self.remotecmd + ['-C'])
+        except OSError:
+            return False
+        except subprocess.CalledProcessError:
+            return False
+        return True
+    def run(self, cmd):
+        return subprocess.Popen(self.remotecmd + cmd, stdout=subprocess.PIPE).communicate()[0].rstrip('\n').split('\n')
+    def run_cmd(self, cmd):
+        return self.run(['-C', cmd])
+    def echo(self, arg):
+        self.run_cmd('echo '+arg)
+    def get_opt(self, opt):
+        return self.run_cmd('set '+opt)[0].lstrip("setting: '"+opt+"=").rstrip("'")
+    def set_opt(self, opt, val):
+        self.run_cmd('set '+opt+'='+val)
+
+parser = OptionParser(usage='usage: %prog -[c|p|t|T] format-string')
+parser.add_option('-c', '--current', action='store_true', default=False,
+        help='change *_current format options')
+parser.add_option('-p', '--playlist', action='store_true', default=False,
+        help='change *_playlist* format options')
+parser.add_option('-T', '--title', action='store_true', default=False,
+        help='change *_title format options')
+parser.add_option('-t', '--trackwin', action='store_true', default=False,
+        help='change *_trackwin format options')
+
+cmus = CMus()
+if not cmus.is_running():
+    parser.error('cmus is not running')
+
+(options, args) = parser.parse_args(sys.argv[1:])
+
+if len(args) != 1:
+    cmus.echo(parser.get_usage())
+    parser.error('no format string given')
+
+if options.current:
+    format_options = ['altformat_current', 'format_current']
+elif options.title:
+    format_options = ['altformat_title', 'format_title']
+elif options.trackwin:
+    format_options = ['altformat_trackwin', 'format_trackwin']
+else:
+    format_options = ['altformat_playlist', 'format_playlist', 'format_playlist_va']
+
+append = args[0]
+old_values = [cmus.get_opt(x) for x in format_options]
+suffix = common_suffix(old_values)
+
+for opt, old in zip(format_options, old_values):
+    cmus.set_opt(opt, old.rstrip(suffix)+append)
+cmus.echo("replaced '"+suffix+"' by '"+append+"'")

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# copied from https://github.com/cmus/cmus/wiki/detachable-cmus
+
+if ! screen -r -D cmus >/dev/null ; then
+    screen -S cmus /usr/bin/cmus "$@"
+fi

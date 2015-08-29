@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# copied from https://github.com/cmus/cmus/wiki/cmus_edit_tags
+
+file="$(cmus-remote -C 'echo {}')"
+
+if [ -f "$file" ]
+then
+         mrxvt -e /usr/bin/mp3info -i "$file" &
+else
+         echo "Oop, couldn't find selected track" >&2
+fi

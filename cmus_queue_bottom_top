@@ -1,0 +1,19 @@
+ #!/bin/bash
+
+# copied from https://github.com/cmus/cmus/wiki/cmus_queue_bottom_top
+
+# This program takes the bottom queued song and moves it to the top of the 
+# queue
+
+# Dump the queue to stdout and prepend 'add -q /' to each song so they can be
+# added later
+q=$(cmus-remote -C "save -q -" | sed "s/^/add -q /")
+
+# Strip all the output except for the very last song
+bottom_to_top=$(echo "$q" | tail -n 1)
+
+# Remove only the very last line
+body=$(echo "$q" | head -n -1)
+
+# Clear the current queue. Add the previously bottom song, and then add the rest
+(echo "clear -q"; echo "$bottom_to_top"; echo "$body") | cmus-remote

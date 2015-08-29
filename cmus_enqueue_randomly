@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# copied from https://github.com/cmus/cmus/wiki/cmus_enqueue_randomly
+
+(for x in "$@" ; do echo "add -q $x" ; done | sort -R | cmus-remote) &
